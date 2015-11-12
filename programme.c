@@ -418,6 +418,201 @@ void BFSTraverse(Graph G,Status (*Visit)(int v)){
 //每个顶点至多进一次队列，遍历图的过程实质上是通过边或弧找邻接点的过程
 //广度优先搜索遍历和深度优先搜索遍历时间复杂度相同，不同的知识对顶点的访问顺序不同
 
+//图的连通性问题
+//无向连通图遍历，仅需从图中任意顶点出发，进行深度优先搜索或广度优先搜索，便可访问图中所有顶点。
+//对无向连通图，每一次从一个新的起始点出发进行搜索过程中得到的顶点访问序列恰为其各个连通分量的顶点集。
+
+
+
+
+//动态查找表——表结构本身实在查找过程中动态生成的
 // 二叉排序树和平衡二叉树
+//二叉排序树（又称二叉查找树）——或者是一棵空树，或者具有下列性质的二叉树：
+//1、若它的左子树不空，则左子树上所有结点的值均小于它的根节点的值
+// 2、若它的有字数不空，则右子树上所有结点的值均大于它的根结点的值
+// 3、它的左右子树也分别为二叉排序树
+// ——————取二叉链表作为二叉排序树的存储结构————
+BitTree SearchBST(BiTree T,KeyType key){
+	//在根指针T所指二叉排序树中递归查找某关键字等于key的数据元素
+    //若查找成功，则返回指向该数据元素结点的指针，否则返回空指针
+    if((!T) || EQ(key,T->data.key)) return(T);//查找结束
+    else if LT(key,T->data.key) return (SearchBST(T->lchild,key));//在左子树中继续查找
+    else return (SearchBST (T->rchild,key))//在右子树中继续查找
+}
+
+//二叉排序树的插入算法，在查找不成功时返回插入位置
+Status SearchBST(BiTree T,KeyType key,BiTree f,BiTree &p){
+	//在根指针T所指二叉排序树中递归地查找其关键字等于key的数据元素，若查找成功
+	//则指针p指向该数据元素结点,返回TRUE，否则指针p指向查找路径上访问的
+	//最后一个结点并返回FALSE，指针f指向T的双亲，其初始调用值为NULL
+	if(!T) {p=f; return FALSE}  //查找不成功
+	else if EQ(key,T->data.key){p=t;return TRUE;}//查找成功
+	else if LT(key,T->data.key) return SearchBST(T->lchild,key,T,p);//在左子树中继续查找
+	else return SearchBST (T->rchild,key,T,p);//在右子树中继续查找
+}
+
+Status InsertBST(BiTree &T, ElemType e){
+	//当二叉排序树T中不存在关键字等于e.key的数据时，插入e并返回TRUE，否则返回FALSE
+	if(!SearchBST(T,e.key,NULL,p)){
+		s = (BitTree)malloc(sizeof(BiTNode));
+		s->data = e;s->lchild = s->rchild  =NULL;
+		if(!p)T = s;   //被插入结点*s为新的根节点
+		else if LT(e.key,p->data.key) p->lchild = s;//被插入结点为左孩子
+		else p->rchild = s;//被插入结点为右孩子
+		return TRUE;
+	}
+	else return FALSE;//树中已有关键字相同结点，不在插入
+}
+//中序遍历二叉排序树棵得到一个关键字的有序序列
+
+
+// 在二叉排序树上删去一个结点
+// 假设*p为被删结点，双亲结点为*f，且不是一般性，可设*p是*f的左孩子
+// 下面分三种情况进行讨论：
+// 1、若*p为叶子结点，即Pl和Pr均为空树，由于删去叶子结点不破坏整棵树的结构，则只需修改其双亲结点的指针即可。
+// 2、若*p结点只有左子树Pl或者只有右子树Pr,此时只要令Pl或Pr直接成为其双亲结点*f的左子树即可。
+// 3、若*p结点的左子树和右子树均不空。有两种做法，其一是令*p的左子树为*f的左子树，而*p的右子树为
+// （*p左子树中序遍历最后元素）*s的右子树。其二是令*p的直接前驱（或直接后继）替代*p，然后再从二叉排序树中删去它的直接前驱
+// 当以直接前驱*s替代*p时，由于*s只有左子树Sl，则在删去*s之后，令Sl为*s的双亲*q的右子树即可。
+//----二叉排序树删除一个结点的算法---------------
+Status DeleteBST(BiTree &T, KeyType key){
+    //若二叉排序树T中存在关键字等于key的数据元素时，则删除该数据元素结点，并返回TRUE，否则FALSE。
+    if(!T)return FALSE; //不存在关键字为key的数据元素
+    else{
+    	if(EQ(key,T->data.key)){return Delete(T)};
+    	else if(LT(key,T->data.key)) return DeleteBST(T->lchild,key);
+    	else return DeleteBSF(T->rchild,key);
+    }
+}
+
+Status Delete(BiTree &p){
+	//从二叉排序树中删除结点p，并重接它的左右子树
+	if(!p->rchild){//右子树空则只需重接它的左子树
+		q=p; p = p->lchild; free(q);
+	}
+	else if(!p->child){//只需重接它的右子树
+        q=p; p = =->rchild; free(q);
+	}
+	else{//左右子树均不空
+        q=p; s=p->lchild;
+        while(s->rchild){q=s; s=s->rchild; }//转左，然后向右走到尽头
+        p->data = s->data;   //s指向被删结点的前驱
+        if(q!=p)q->rchild = s->lchild;  //若p的左子树头结点s没有右子树,重接*q的右子树
+        else q->lchild = s->lchild;  //重接*q的左子树
+        delete s;
+	}
+	return TRUE;
+}
+
+
+//含n个结点的二叉排序树不唯一，所以平均查找长度也不一样。
+// 因此含n个结点的二叉排序树的平均查找长度和树的形态有关。当先后插入的关键字有序时，构成的二叉排序树蜕变为单支树，树的深度为n。
+//平衡二叉树(又称AVL树)——或者是以棵空树，或者具有下列性质的二叉树
+// 它的左子树和右子树都是平衡二叉树，且左子树和右子树的深度只差绝对不超过1。
+// 若将二叉树上的结点的平衡因子BF定义为该结点的左子树的深度减去它的右子树的深度，则平衡二叉树所有结点的平衡因子只可能是-1,0,1
+// AVL树上任何结点的左右子树深度只差都不超过1，则可证明它的深度和logn是同数量级的，由此，它的平均查找长度也和logn同数量级。
+
+// 当平衡二叉排序树因插入结点而失去平衡时，仅需对最小不平衡子树进行平衡旋转处理即可。
+// 在平衡二叉排序树BBST上插入一个新的数据元素e的递归算法可描述如下：
+// 1、若BBST为空树，则插入一个数据元素为e的新结点作为BBST的根节点，树的深度增1.
+// 2、若e的关键字和BBST的根节点的关键字相等，则不进行插入。
+// 3、若e的关键字小于BBST的根节点的关键字，而且在BBST的左子树中不存在和e有相同关键字的结点，则将e插入在BBST的左子树上，
+// 并且当插入之后的左子树深度加1时，分别就下列不同情况处理之。
+// a、BBST的根节点的平衡因子为-1（右子树深度大于左子树深度）：则将根节点的平衡因子更改为0，BBST的深度不变。
+// b、BBST的根节点的平衡因子为0：则将根节点的平衡因子更改为1，BBST深度增1；
+// c、BBST的根节点的平衡因子为1，若BBST的左子树根节点的平衡因子为1，则需进行单向右旋平衡处理，并且在右旋处理之后，
+// 将根节点和其右子树根节点的平衡因子更改为0，树的深度不变；
+// 若BBST的左子树根节点的平衡因子为-1，则需进行先向左，后向右的双向旋转平衡处理，并且在旋转处理之后，修改根节点和
+// 其左右子树根节点的平衡因子，树的深度不变。
+// 4、若e的关键字大于BBST的根节点的关键字，而且在BBST的右子树中不存在和e有相同关键字的结点，则将e插入BBST的右子树，
+// 并且当插入之后的右子树+1时，分别情况处理。
+
+// 二叉排序树的类型定义为
+typedef struct BSTNode
+{
+	ElemType data;
+	int bf;       //结点的平衡因子
+	struct BSTNode *lchild,*rchild;//左右孩子指针
+}BSTNode, *BSTree;
+
+void R_Rotate(BSTree &p){
+	//对以*p为根的二叉排序树作右旋转处理，处理之后p指向新的树根结点，即旋转处理之前左子树的根节点
+	lc = p->lchild;   //lc指向的*p的左子树根节点
+	p->lchild = lc ->rchild; //lc的右子树挂接为*p的左子树
+	lc->rchild = p; p=lc;//p指向新的根节点
+}
+
+void L_Rotate(BSTree &p){
+	//对以*p为根的二叉排序树作左旋处理，处理之后p指向新的树根结点
+	rc = p->rchild;//rc指向*p的右子树根节点
+	p->rchild = rc->lchild;//rc的左子树挂接为*p的右子树
+	rc->rchild = p; p = rc;//p指向新的根节点
+}
+
+#define LH +1  //左高
+#define EH 0    //等高
+#define RH -1   //右高
+Status InsertAVL(BSTree &T, ElemType e,Boolean &taller){
+	//若在平衡的二叉排序树T中不存在和e有相同关键字的结点，则插入一个数据元素为e的新结点，并返回1，否则0
+	//若因插入而使二叉排序树失去平衡，则做平衡旋转处理，布尔变量taller反映长高与否。
+	if(!T){
+		T=(BSTree)malloc(sizeof(BSTNode));T->data = e;
+		T->lchild = T->rchild = NULL;T->bf = EH;taller = TRUE;
+	}
+	else{
+		if(EQ(e.key,T->data.key)){//树中已存在和e有相同关键字的结点则不再插入
+			taller = FALSE; return 0;
+		}
+		if(LT(e.key,T->data.key)){//应继续在*T的左子树中进行搜索
+			if(!InsertAVL(T->lchild,e,taller))return 0;//未插入 
+			if(taller)  //已插入在*T的左子树中且左子树长高
+				switch(T->bf){ //检查*T平衡度
+					case LH: //原本左子树比右子树高，需要做平衡处理
+					  LeftBalance(T); taller = FALSE;break;
+					case EH: //原本左右子树等高，现因左子树增高而是树增高
+					  T->bf = LH;taller = TRUE;break;
+					case RH:  //原本右子树比左子树高，现左右子树等高
+					  T->bf = EH;taller = FALSE;break;
+				}
+		}
+		else{   //应继续在*T右子树中进行搜索
+			if(!InsertAVL(T->rchild,e,taller))return 0;//未插入
+			if(taller)   //已插入到*T的右子树且右子树长高
+				switch(T->bf){  //检查*T平衡度
+					case LH://原本左子树必有字数高，先左右子树等高
+					  T->bf=EH;taller = FALSE;break;
+					case EH://原本左右子树等高，现因右子树增高而使树增高
+					  T->bf=RH;taller = TRUE;break;
+					case RH://原本右子树比左子树高，需要做右平衡处理
+					  RightBalance(T);taller = FALSE;break;
+				}
+		}
+
+	}
+	return 1;
+}
+
+void LeftBalance(BSTree &T){
+  //对以指针T所指结点为根的二叉树作左平衡旋转处理，本算法结束时，指针T指向新的根节点
+   lc = T->lchild;  //lc指向*T的左子树根节点 
+   switch(lc->bf){   //检查*T的左子树的平衡度，并作相应平衡处理
+   	 case LH:   //新结点插入在*T的左孩子的左子树上，要作单右旋处理
+   	   T->bf = lc->bf = EH;
+   	   R_Rotate(T);break;
+   	 case RH://新结点插入在*T的左孩子的右子树上，要作双旋处理
+   	   rd = lc->rchild;//rd指向*T的左孩子的右子树根
+   	   switch(rd->bf){  //修改*T及其左孩子的平衡因子
+   	   	  case LH:T->bf = RH;lc->bf=EH;break;
+   	   	  case EH:T->bf=lc->bf = EH;
+   	   	  case RH:T->bf = EH;lc->bf = LH;break;
+   	   }
+   	   rd->bf = EH;
+   	   L_Rotate(T->lchild);  //对*T的左子树作左旋转平衡处理
+   	   R_Rotate(T);  //对*T作右旋转平衡处理
+   }
+}
+
+
+
 // b-树b+树
 // 哈希表
