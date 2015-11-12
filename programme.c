@@ -211,7 +211,213 @@ void Trial(int i, int n){
 }
 
 
-// 深度优先搜索，广度优先搜索
+
+//图
+//图中数据元素叫顶点，<v,w>∈VR(顶点关系集合)  ,表示从v到w的一条弧，v叫弧尾或初始点，w叫弧头或终端点，此时图为有向图
+// <v,w>∈VR必有<w,v>∈VR，对称，表示v到w的一条边，此时图为无向图
+// 有1/2n(n-1)条边的无向图称为完全图，有n（n-1）条弧的有向图称有向完全图，带权的图称网
+//无向图中，度为顶点和边相关联的数目，有向图，分出度和入度
+// 路径是一个顶点序列，路径的长度是路径上边或弧的数目，序列中顶点不重复出现的路径称简单路径。
+// 除了第一个顶点和最后一个顶点之外，其余顶点不重复出现的回路，称简单回路或简单环。
+// 无向图中，顶点a到b有路径，称a到b是连通的。对于图中任意两个顶点都是连通的，称图为连通图
+// 无向图中的极大连通子图叫连通分量。
+// 有向图中，对于a，b，a到b，b到a都存在路径，图为强连通图，有向图中的极大强连通子图称强连通分量。
+// 一个连通图的生成树是一个极小连通子图
+// **一棵有n个顶点的生成树有且仅有n-1条边，如果一个图有n个顶点和小于n-1条边，则是非连通图，如果多余n-1条边，则一定有环。但有n-1条边的图不一定是生成树。
+
+//图的存储结构
+//数组表示法-矩阵
+#define INFINITY INT_MAX //最大值，无穷大
+#define MAX_VERTEX_NUM 20 //最大顶点个数
+typedef enum {DG,DN,UDG,UDN}GraphKind;//{有向图，无向图，无向图，无向网}
+typedef struct ArcCell
+{
+	VRType  adj;//VRType是顶点关系类型，对无权图，用1或0表示相邻否，对带权图，则为权值类型
+	InfoType *info;//该弧相关信息的指针
+}ArcCell,AdjMatrix[MAX_VERTEX_NUM][MAX_VERTEX_NUM];
+
+typedef struct 
+{
+	VertexType  vexs[MAX_VERTEX_NUM];  //顶点向量
+	AdjMatrix arcs;  //邻接矩阵
+	int vexnum,arcnum;  //图的当前顶点数和弧数
+	GraphKind kind;//图的种类标志
+}MGraph;
+
+//采用数组（邻接矩阵）表示法，构造无向网
+Status CreateUDN(MGraph &G){
+	scanf(&G.vexnum,&G.arcnum,&IncInfo);//IncInfo为0则各弧不含其它信息
+	for(i=0;i<G.vexnum;++i)scanf(&G.vexs[i]);//构造顶点向量
+	for(i=0;i<G.vexnum;++i)//初始化邻接矩阵
+		for(j=0;j<G.vexnum;++j)G.arcs[i][j] = {INFINITY,NULL};
+	for(k=0;k<G.arcnum;++k){  //构造邻接矩阵
+		scanf(&v1,&v2,&w);   //输入一边依附的顶点和权值
+		i = LocateVex(G,v1);  j = LocateVex(G.v2);//确定v1，v2在G中的位置
+		G.arcs[i][j].adj = w;//弧<v1,v2>的权值
+		if(IncInfo)Input(*G.arcs[i][j].info);//若弧有相关信息，则输入
+		G.arcs[j][i] = G[i][j];
+	}  
+	return OK;
+}
+
+//邻接表示图的一种链式存储结构
+//邻接表中，对图中每个顶点建立一个单链表，第i个单链表中的结点表示依附于顶点vi的边
+// 结点由3个域组成，邻接域adjvex表示顶点vi邻接的点在图中的位置。
+// 链域nextarc表示下一条边或弧的结点。
+// 数据域info存储和边或弧相关的信息，如权值。
+// 表头结点通常以顺序结构的形式荀淑，以便随意访问任意顶点的链表。
+
+//图的邻接表存储表示
+#define MAX_VERTEX_NUM 20
+typedef struct ArcNode
+{
+	int adjvex;  //该弧所指向顶点位置
+	struct ArcNode *nextarc;  //指向下一条弧的指针
+	InfoType *info; //该弧相关信息的指针
+}ArcNode;
+typedef struct VNode
+{
+	VertexType data;//顶点信息；
+	ArcNode *firstarc;//指向第一条依附该顶点的弧的指针
+}VNode,AdjList[MAX_VERTEX_NUM];
+typedef struct
+{
+	AdjList vertices;
+	int  vexnum,arcnum; //图的当前顶点树和弧度数
+	int kind;//图的种类
+};
+//若无向图中有n个顶点，e条边，则它的邻接表需n个头结点和2e个表结点，在边稀疏（e<<n(n-1)/2）的情况下，邻接表比邻接矩阵节省存储空间
+
+
+//十字链表是有向图的一种链式存储结构，可以看成是有向图的邻接表和逆邻接表结合起来的一种表
+//弧结点 tailvex,headvex,(尾域，头域)hlink（弧头相同的下一条弧）,tlink（胡尾相同下一条弧）,info
+//顶点结点 data,firstin,firstout
+//--------有向图的十字链表存储表示---------------------
+#define MAX_VERTEX_NUM 20
+typedef struct ArcBox
+{
+	int tailvex,headvex;  //该弧的尾和头结点的位置
+	struct ArcBox *hlink,*tlink; //分别为弧头相同和弧尾相同的弧的链域
+	Infotype *info;//该弧相关信息的指针
+}ArcBox;
+
+typedef struct VexNode
+{
+	VertexType data;
+	ArcBox *firstin,*firstout;//分别指向该顶点的第一条入弧和出弧
+}VexNode;
+typedef struct 
+{
+	VexNode xlist[MAX_VERTEX_NUM];//表头向量
+	int vexnum,arcnum;  //有向图的当前顶点数和弧数
+}OLGraph;
+
+Status CreateDG(OLGraph &G){
+	//采用十字链表存储表示，构造有向图G
+	scanf(&G.vexnum,&G.arcnum,&IncInfo);//IncInfo为0表示不含其他信息
+    for (int i = 0; i < G.vexnum; ++i)//构造表头向量
+    {
+    	scanf(G.xlist[i].data);//输入顶点值
+    	G.xlist[i].firstin = NULL;G.xlist[i].firstout = NULL;//初始化指针
+    }
+    for (k=0; k < G.arcnum; ++k)//输入各弧并构造十字链表
+    {
+    	scanf(&va,&v2);//收一条弧的始点和终点
+    	i=LocateVex(G,v1);j=LocateVex(G,v2);//确定v1和v2在G中位置
+    	p=(ArcBox *)malloc(sizeof(ArcBox));//假定有足够空间
+    	*p = {i,j,G.xlist[j].firstin,G.xlist[i].firstout,NULL}//对弧结点赋值
+    	G.xlist[j].firstin = G.xlist[i].firstout = p;//完成在入弧和出弧链头的插入
+    	if(IncInfo) Input(*p->info);//带有弧相关信息，则输入
+    }
+}
+
+
+//邻接多重表是无向图的一种链式存储结构
+// 邻接多重表中，每一条边用一个结点表示
+//边：mark(标志域,标记该条边是否被搜索过),ivex(顶点图中位置),ilink(下一条依附于顶点的边),jvex,jlink,info
+// 顶点：data(顶点相关信息),firstedge(指示第一条依附于顶点的边)
+//对无向图而言，邻接多重表和邻接表的差别，仅仅在于同一条边在临界表中用两个结点表示（重复的边，不同表示），而在邻接多重表中只有一个。
+//------无向图的邻接多重表存储表示------------------------------
+#define  MAX_VERTEX_NUM 20
+typedef enum {unvisited,visited}VisitIf;
+typedef struct EBox
+{
+	VisitIf mark;//访问标记
+	int ivex,jvex;//该边依附的两个顶点的位置
+	struct EBox *ilink,*jlink;//分别指向依附着两个顶点的下一条边
+	InfoType *info;//该边信息指针
+}EBox;
+typedef struct VexBox
+{
+	VertexType data;
+	EBox *firstedge;//指向第一条依附该顶点的边
+}VerBox;
+typedef struct 
+{
+	VerBox adjmulist[MAX_VERTEX_NUM];
+	int vexnum,edgenum;//无向图的当前顶点数和边数
+}AMLGraph;
+
+//图的遍历——求解图的连通性，拓扑排序和求关键路径等算法的基础
+// 深度优先搜索，广度优先搜索——对无向图和有向图都适用
+
+//深度优先遍历——类似树的先根遍历
+//假设初始状态是图中所有顶点都未曾被访问，则深度优先搜索可从图中某个顶点v出发，访问此顶点，然后依次从
+// v的未被访问的邻接点出发深度优先遍历图，直至图中所有和v有路径相通的顶点都被访问到，若此时图中尚有顶点未被
+// 访问到，则另选图中一个未曾被访问的顶点做起始点，重复上述过程，直至图中所有顶点都被访问到为止。
+Boolean visited[MAX];//访问标志数组
+Status(* VisitFunc)(int v);//函数变量
+
+void DFSTraverse(Graph G, Status(*Visit)(int v)){
+	//对图G作深度优先遍历
+	VisitFunc = Visit;  //适用全局变量VisitFunc，是DFS不必设函数指针参数
+	for(v=0;v<G.vexnum;++v)visited[v] = FALSE;//初始化
+	for(v=0;v<G.vexnum;++v)
+		if(!visited[v])DFS(G,v)//对尚未访问顶点调用DFS
+}
+
+void DFS(Graph G, int v){
+	//从第v个顶点出发递归的深度优先遍历图G
+	visited[v] = TRUE;  VisitFunc(v);//访问第v个结点
+	for(w=FirstAdjVex(G,v);w>=0;w=NextAdjVex(G,v,w))
+	   if(!visited[w])DFS(G,w); //对v尚未访问的邻接顶点w递归调用DFS    
+}
+//当用二位数组表示邻接矩阵作图的存储结构时，查找每个顶点的邻接点所需时间为O(n²)，n为顶点数
+// 当以邻接表作图的存储结构时，找邻接点所需时间为O(e),e为无向图中边的树或有向图中弧的数。
+// 当以邻接表作存储结构时，深度优先搜索遍历图的时间复杂度为O(n+e)
+
+
+
+
+//广度优先搜索  ——类似于树的按层次遍历过程
+// 从图中某顶点v出发，在访问了v之后依次访问v的哥哥未曾访问的邻接点，然后分别从这些邻接点出发依次访问它们的邻接点，
+// 并使“先被访问的顶点的邻接点”先于“后被访问的顶点的邻接点”被访问，直至图中所有一杯访问的顶点的邻接点都被访问到。
+// 若此时图中尚有顶点未被访问，则另选图中一个未曾被访问的顶点作起始点，重复上述过程，直至图中所有顶点都被访问到为止。
+// 换句话或，广度优先搜索遍历图的过程是以v为起始点，由近至远，依次访问和v有路径相通且路径长度为1,2，。。的顶点。
+//——--广度优先算法-------------------
+void BFSTraverse(Graph G,Status (*Visit)(int v)){
+  //按广度优先非递归遍历图G。适用辅助队列Q和访问标志数组visited
+   for(v=0;v<G.vexnum;++v) visited[v] = FALSE;
+   InitQueue(Q);  //置空的辅助队列Q
+   for(v=0;v<G.vexnum;++v){
+   	   if(!visited[v]){//v尚未访问
+          visited[v] = TRUE;Visit(v);
+          EnQueue(Q,v); //v入队列
+          while(!QueueEmpty){
+          	DeQueue(Q,u); //队头元素出队并置为u
+          	for(w=FirstAdjVex(G,u);w>=0;w=NextAdjVex(G,u,w)){
+          		if(!visited[w]){
+          			visited[w] = TRUE;Visit(w);
+          			EnQueue(Q,w);
+          		}
+          	}
+          }
+   	   }
+   }
+} 
+//每个顶点至多进一次队列，遍历图的过程实质上是通过边或弧找邻接点的过程
+//广度优先搜索遍历和深度优先搜索遍历时间复杂度相同，不同的知识对顶点的访问顺序不同
+
 // 二叉排序树和平衡二叉树
 // b-树b+树
 // 哈希表
